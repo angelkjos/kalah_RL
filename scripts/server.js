@@ -24,9 +24,17 @@ const MIME_TYPES = {
 
 const server = http.createServer((req, res) => {
     // Parse URL and remove query strings
-    let filePath = './public' + req.url;
-    if (filePath === './public/') {
+    let filePath = '';
+
+    // Determine which directory to serve from
+    if (req.url === '/') {
         filePath = './public/index.html';
+    } else if (req.url.startsWith('/models/')) {
+        // Allow access to models directory
+        filePath = '.' + req.url;
+    } else {
+        // Serve from public directory
+        filePath = './public' + req.url;
     }
 
     // Get file extension for MIME type
