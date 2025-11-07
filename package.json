@@ -5,6 +5,9 @@
   "main": "game.js",
   "scripts": {
     "test": "node tests/game.test.js",
+    "test:verify": "node tests/verify-stats.js",
+    "test:stats": "node tests/test-stats-reset.js",
+    "test:all": "npm test && npm run test:verify && npm run test:stats",
     "demo": "node src/utils/simple-demo.js",
     "ml-examples": "node src/utils/ml-examples.js",
     "rl-demo": "node src/training/rl-demo.js",

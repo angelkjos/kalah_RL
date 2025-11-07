@@ -30,11 +30,31 @@ class Trainer {
     }
 
     /**
+     * Reset training statistics
+     */
+    resetStats() {
+        this.stats = {
+            gamesPlayed: 0,
+            wins: 0,
+            losses: 0,
+            draws: 0,
+            totalReward: 0,
+            recentWinRate: []
+        };
+    }
+
+    /**
      * Train agent through self-play
      * @param {number} numEpisodes - Number of games to play
+     *
+     * Note: In self-play, the agent plays both sides, so "wins" and "losses"
+     * represent which side (Player 0 vs Player 1) won, not agent performance.
+     * Both outcomes contribute to learning.
      */
     async trainSelfPlay(numEpisodes) {
+        this.resetStats();
         console.log(`\n🤖 Training via self-play for ${numEpisodes} episodes...`);
+        console.log('(Note: Agent plays both sides, so wins/losses show game balance, not performance)');
 
         for (let episode = 0; episode < numEpisodes; episode++) {
             const game = new KalahEngine({ enableLogging: false });
@@ -104,6 +124,8 @@ class Trainer {
      * @param {Function} opponentPolicy - Function(state, validMoves) => action
      */
     async trainAgainstOpponent(numEpisodes, opponentPolicy = null) {
+        this.resetStats();
+
         // Default to random opponent
         if (!opponentPolicy) {
             opponentPolicy = (state, validMoves) => {
@@ -180,8 +202,13 @@ class Trainer {
     /**
      * Curriculum learning: gradually increase difficulty
      * @param {number} numEpisodes - Total number of episodes
+     * @param {boolean} resetStatsPerStage - Reset stats between stages (default: false, keeps cumulative)
      */
-    async trainCurriculum(numEpisodes) {
+    async trainCurriculum(numEpisodes, resetStatsPerStage = false) {
+        if (!resetStatsPerStage) {
+            this.resetStats(); // Reset once at the start for cumulative stats
+        }
+
         console.log(`\n📚 Training with curriculum learning for ${numEpisodes} episodes...`);
 
         const stages = [
@@ -190,14 +217,25 @@ class Trainer {
             { name: 'Self-play (advanced)', episodes: Math.floor(numEpisodes * 0.3), policy: 'self' }
         ];
 
-        for (const stage of stages) {
-            console.log(`\n--- Stage: ${stage.name} (${stage.episodes} episodes) ---`);
+        for (let i = 0; i < stages.length; i++) {
+            const stage = stages[i];
+            console.log(`\n--- Stage ${i + 1}/${stages.length}: ${stage.name} (${stage.episodes} episodes) ---`);
+
+            // Save resetStats calls to avoid resetting during curriculum unless requested
+            const originalResetStats = this.resetStats.bind(this);
+            if (!resetStatsPerStage) {
+                // Temporarily override resetStats to do nothing
+                this.resetStats = () => {};
+            }
 
             if (stage.policy === 'self') {
                 await this.trainSelfPlay(stage.episodes);
             } else {
                 await this.trainAgainstOpponent(stage.episodes, stage.policy);
             }
+
+            // Restore original method
+            this.resetStats = originalResetStats;
         }
 
         console.log('\n✅ Curriculum training complete!');
