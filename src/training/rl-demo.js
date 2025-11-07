@@ -14,20 +14,25 @@ const readline = require('readline');
 async function main() {
     console.log('🎮 Kalah/Mancala Q-Learning Agent Demo\n');
 
-    // Create agent
-    console.log('Creating Q-Learning agent...');
+    // Create agent with improved DQN hyperparameters
+    console.log('Creating DQN agent...');
     const agent = new QLearningAgent({
         learningRate: 0.001,
-        discountFactor: 0.95,
+        learningRateEnd: 0.0005,
+        discountFactor: 0.99,
         epsilon: 1.0,
-        epsilonDecay: 0.995,
-        epsilonMin: 0.1
+        epsilonMin: 0.05,
+        epsilonDecaySteps: 50000,
+        replayBufferSize: 100000,
+        batchSize: 64,
+        targetUpdateFreq: 1000,
+        gradientClipValue: 1.0
     });
 
     // Create trainer
     const trainer = new Trainer(agent, {
         verbose: true,
-        logInterval: 50
+        logInterval: 500
     });
 
     // Show menu
@@ -40,57 +45,54 @@ async function main() {
         console.log('\n' + '='.repeat(50));
         console.log('What would you like to do?');
         console.log('='.repeat(50));
-        console.log('1. Train via self-play (10000 episodes)');
-        console.log('2. Train against random opponent (1000 episodes)');
-        console.log('3. Train with curriculum learning (2000 episodes) ⭐ RECOMMENDED');
-        console.log('4. Evaluate agent vs random opponent');
-        console.log('5. Play against the agent');
-        console.log('6. Save model');
-        console.log('7. Load model');
-        console.log('8. Exit');
+        console.log('1. Train via self-play (10k episodes) ⭐ RECOMMENDED');
+        console.log('2. Train against random opponent (10k episodes)');
+        console.log('3. Evaluate agent vs random opponent');
+        console.log('4. Play against the agent');
+        console.log('5. Save model');
+        console.log('6. Load model');
+        console.log('7. Exit');
         console.log('='.repeat(50));
     };
 
     const handleChoice = async (choice) => {
         switch (choice) {
             case '1':
+                console.log('\n🤖 Training via self-play...');
                 await trainer.trainSelfPlay(10000);
                 showMenu();
                 askChoice();
                 break;
 
             case '2':
-                await trainer.trainAgainstOpponent(1000);
+                console.log('\n🎯 Training against random opponent...');
+                await trainer.trainAgainstOpponent(10000);
                 showMenu();
                 askChoice();
                 break;
 
             case '3':
-                await trainer.trainCurriculum(2000);
-                showMenu();
-                askChoice();
-                break;
-
-            case '4':
                 await trainer.evaluate(100);
                 showMenu();
                 askChoice();
                 break;
 
-            case '5':
+            case '4':
                 await playAgainstAgent(agent);
                 showMenu();
                 askChoice();
                 break;
 
-            case '6':
+            case '5':
+                console.log('💾 Saving model...');
                 await agent.save('./models/kalah-agent');
                 showMenu();
                 askChoice();
                 break;
 
-            case '7':
+            case '6':
                 try {
+                    console.log('📦 Loading model...');
                     await agent.load('./models/kalah-agent');
                 } catch (e) {
                     console.log('❌ Could not load model. Train a model first!');
@@ -99,7 +101,7 @@ async function main() {
                 askChoice();
                 break;
 
-            case '8':
+            case '7':
                 console.log('\n👋 Goodbye!');
                 rl.close();
                 process.exit(0);
@@ -112,7 +114,7 @@ async function main() {
     };
 
     const askChoice = () => {
-        rl.question('\nEnter your choice (1-8): ', handleChoice);
+        rl.question('\nEnter your choice (1-7): ', handleChoice);
     };
 
     // Quick training option for demo

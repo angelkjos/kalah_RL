@@ -12,34 +12,36 @@ const Trainer = require('../ai/trainer.js');
 async function trainAgent() {
     console.log('🎮 Training Kalah/Mancala RL Agent\n');
 
-    // Create agent
+    // Create agent with improved DQN hyperparameters
     const agent = new QLearningAgent({
         learningRate: 0.001,
-        discountFactor: 0.95,
+        learningRateEnd: 0.0005,
+        discountFactor: 0.99,
         epsilon: 1.0,
-        epsilonDecay: 0.995,
-        epsilonMin: 0.1
+        epsilonMin: 0.05,
+        epsilonDecaySteps: 50000,
+        replayBufferSize: 100000,
+        batchSize: 64,
+        targetUpdateFreq: 1000,
+        gradientClipValue: 1.0
     });
 
     // Create trainer
     const trainer = new Trainer(agent, {
         verbose: true,
-        logInterval: 100  // Log every 100 episodes
+        logInterval: 500  // Log every 500 episodes
     });
 
     // ===== CUSTOMIZE YOUR TRAINING HERE =====
 
-    // Option A: Train with curriculum learning (recommended)
-    console.log('\n📚 Starting curriculum learning...');
-    await trainer.trainCurriculum(10000);  // 10,000 episodes total
+    // Self-play training (recommended for DQN)
+    // Agent plays against itself, learning from both perspectives
+    console.log('\n🤖 Starting self-play training...');
+    await trainer.trainSelfPlay(50000);  // 50,000 episodes for full ε decay
 
-    // Option B: Pure self-play (uncomment to use instead)
-    // console.log('\n🤖 Starting self-play training...');
-    // await trainer.trainSelfPlay(10000);  // 10,000 episodes
-
-    // Option C: Against random opponent (uncomment to use instead)
+    // Alternative: Train against random opponent (faster, but less strategic)
     // console.log('\n🎯 Training against random opponent...');
-    // await trainer.trainAgainstOpponent(10000);  // 10,000 episodes
+    // await trainer.trainAgainstOpponent(50000);
 
     // =========================================
 

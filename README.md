@@ -145,8 +145,8 @@ npm run rl-demo  # Interactive training
 **Problem:** Model might not be fully trained
 
 **Solution:**
-- Re-train with more episodes (edit `train-agent.js`)
-- Use curriculum learning (option 3 in `npm run rl-demo`) - RECOMMENDED
+- Re-train with more episodes (edit `train-agent.js` to increase from 50k)
+- Use self-play training (option 1 in `npm run rl-demo`) - RECOMMENDED
 
 ### Server already in use (port 8080)
 **Solution:**
