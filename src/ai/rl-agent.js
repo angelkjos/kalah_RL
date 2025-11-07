@@ -16,27 +16,40 @@ class QLearningAgent {
     constructor(options = {}) {
         const {
             learningRate = 0.001,
-            discountFactor = 0.95,
+            learningRateEnd = 0.0005,
+            discountFactor = 0.99,
             epsilon = 1.0,
-            epsilonDecay = 0.995,
-            epsilonMin = 0.1,
-            replayBufferSize = 10000,
-            batchSize = 32
+            epsilonMin = 0.05,
+            epsilonDecaySteps = 50000,
+            replayBufferSize = 100000,
+            batchSize = 64,
+            targetUpdateFreq = 1000,
+            gradientClipValue = 1.0
         } = options;
 
         this.learningRate = learningRate;
+        this.learningRateStart = learningRate;
+        this.learningRateEnd = learningRateEnd;
         this.gamma = discountFactor;
         this.epsilon = epsilon;
-        this.epsilonDecay = epsilonDecay;
+        this.epsilonStart = epsilon;
         this.epsilonMin = epsilonMin;
+        this.epsilonDecaySteps = epsilonDecaySteps;
         this.batchSize = batchSize;
+        this.targetUpdateFreq = targetUpdateFreq;
+        this.gradientClipValue = gradientClipValue;
 
         // Experience replay buffer
         this.replayBuffer = [];
         this.replayBufferSize = replayBufferSize;
 
-        // Build neural network
+        // Build neural networks (online and target)
         this.model = this.buildModel();
+        this.targetModel = this.buildModel();
+        this.syncTargetNetwork();
+
+        // Training step counter for target network updates and epsilon decay
+        this.trainingStep = 0;
 
         // Statistics
         this.stats = {
@@ -48,41 +61,60 @@ class QLearningAgent {
 
     /**
      * Build the Q-network
-     * Input: game state features (21 dimensions)
+     * Input: game state features (15 dimensions)
      * Output: Q-values for each action (6 pits)
+     *
+     * Architecture: 15 → 128 → 128 → 64 → 6
      */
     buildModel() {
         const model = tf.sequential();
 
-        // Input layer
+        // Input layer (15 features)
         model.add(tf.layers.dense({
-            inputShape: [21],
+            inputShape: [15],
+            units: 128,
+            activation: 'relu',
+            kernelInitializer: 'heNormal'
+        }));
+
+        // Hidden layer 1
+        model.add(tf.layers.dense({
+            units: 128,
+            activation: 'relu',
+            kernelInitializer: 'heNormal'
+        }));
+
+        // Hidden layer 2
+        model.add(tf.layers.dense({
             units: 64,
             activation: 'relu',
             kernelInitializer: 'heNormal'
         }));
 
-        // Hidden layer
-        model.add(tf.layers.dense({
-            units: 32,
-            activation: 'relu',
-            kernelInitializer: 'heNormal'
-        }));
-
-        // Output layer - Q-values for 6 possible actions (pits 0-5 for player 0)
+        // Output layer - Q-values for 6 possible actions (pits 0-5)
         model.add(tf.layers.dense({
             units: 6,
-            activation: 'linear'
+            activation: 'linear',
+            kernelInitializer: 'glorotUniform'
         }));
 
-        // Compile model
+        // Compile model with gradient clipping
         model.compile({
-            optimizer: tf.train.adam(this.learningRate),
+            optimizer: tf.train.adam(this.learningRate, undefined, undefined, undefined, this.gradientClipValue),
             loss: 'meanSquaredError',
             metrics: ['mae']
         });
 
         return model;
+    }
+
+    /**
+     * Sync target network weights with online network
+     */
+    syncTargetNetwork() {
+        const weights = this.model.getWeights();
+        const weightsCopy = weights.map(w => w.clone());
+        this.targetModel.setWeights(weightsCopy);
     }
 
     /**
@@ -104,13 +136,14 @@ class QLearningAgent {
             const qValues = this.model.predict(featureTensor);
             const qArray = Array.from(qValues.dataSync());
 
-            // Only consider valid moves
+            // Q-values are indexed 0-5 for the current player's pits
+            // validMoves contains absolute pit indices
             let bestAction = validMoves[0];
             let bestQ = -Infinity;
 
             for (const move of validMoves) {
                 // Convert absolute pit index to relative (0-5 for current player)
-                const relativeMove = state.currentPlayer === 0 ? move : move - 6;
+                const relativeMove = move - (state.currentPlayer * 6);
                 if (relativeMove >= 0 && relativeMove < 6 && qArray[relativeMove] > bestQ) {
                     bestQ = qArray[relativeMove];
                     bestAction = move;
@@ -149,7 +182,7 @@ class QLearningAgent {
     }
 
     /**
-     * Train the model on a batch of experiences
+     * Train the model on a batch of experiences using DQN with target network
      * @returns {number} Average loss for the batch
      */
     async replay() {
@@ -157,6 +190,15 @@ class QLearningAgent {
         if (this.replayBuffer.length < this.batchSize) {
             return 0;
         }
+
+        // Increment training step
+        this.trainingStep++;
+
+        // Update learning rate (linear decay)
+        this.updateLearningRate();
+
+        // Update epsilon (linear decay over epsilonDecaySteps)
+        this.updateEpsilon();
 
         // Sample random batch
         const batch = [];
@@ -175,28 +217,28 @@ class QLearningAgent {
             const features = extractFeatures(exp.state);
             states.push(features);
 
-            // Get current Q-values
+            // Get current Q-values from online network
             const currentQ = this.getQValues(exp.state);
 
-            // Calculate target Q-value for the action taken
+            // Calculate target Q-value using target network
             let targetQ;
             if (exp.done) {
                 // Terminal state - just use the reward
                 targetQ = exp.reward;
             } else {
-                // Q-learning update: Q(s,a) = r + γ * max Q(s',a')
-                const nextQ = this.getQValues(exp.nextState);
+                // DQN update: Q(s,a) = r + γ * max Q_target(s',a')
+                const nextQ = this.getTargetQValues(exp.nextState);
                 targetQ = exp.reward + this.gamma * Math.max(...nextQ);
             }
 
             // Update only the Q-value for the action taken
-            const relativeAction = exp.state.currentPlayer === 0 ? exp.action : exp.action - 6;
+            const relativeAction = exp.action - (exp.state.currentPlayer * 6);
             currentQ[relativeAction] = targetQ;
 
             targets.push(currentQ);
         }
 
-        // Train the model
+        // Train the online network
         const xs = tf.tensor2d(states);
         const ys = tf.tensor2d(targets);
 
@@ -211,14 +253,55 @@ class QLearningAgent {
         xs.dispose();
         ys.dispose();
 
+        // Update target network periodically
+        if (this.trainingStep % this.targetUpdateFreq === 0) {
+            this.syncTargetNetwork();
+        }
+
         return loss;
     }
 
     /**
-     * Decay epsilon (reduce exploration over time)
+     * Get Q-values from target network
+     * @param {Object} state - Game state
+     * @returns {number[]} Q-values for each action
+     */
+    getTargetQValues(state) {
+        return tf.tidy(() => {
+            const features = extractFeatures(state);
+            const featureTensor = tf.tensor2d([features]);
+            const qValues = this.targetModel.predict(featureTensor);
+            return Array.from(qValues.dataSync());
+        });
+    }
+
+    /**
+     * Update learning rate with linear decay
+     */
+    updateLearningRate() {
+        const progress = Math.min(1.0, this.trainingStep / this.epsilonDecaySteps);
+        this.learningRate = this.learningRateStart - progress * (this.learningRateStart - this.learningRateEnd);
+
+        // Update optimizer learning rate
+        this.model.optimizer.learningRate = this.learningRate;
+    }
+
+    /**
+     * Update epsilon with linear decay over epsilonDecaySteps
+     */
+    updateEpsilon() {
+        const progress = Math.min(1.0, this.trainingStep / this.epsilonDecaySteps);
+        this.epsilon = this.epsilonStart - progress * (this.epsilonStart - this.epsilonMin);
+        this.epsilon = Math.max(this.epsilonMin, this.epsilon);
+    }
+
+    /**
+     * Decay epsilon (deprecated - now handled in updateEpsilon)
+     * Kept for backwards compatibility
      */
     decayEpsilon() {
-        this.epsilon = Math.max(this.epsilonMin, this.epsilon * this.epsilonDecay);
+        // Epsilon is now updated automatically in replay()
+        // This method is kept for backwards compatibility but does nothing
     }
 
     /**
@@ -250,12 +333,18 @@ class QLearningAgent {
             weightsData: weightsData,
             hyperparameters: {
                 learningRate: this.learningRate,
+                learningRateStart: this.learningRateStart,
+                learningRateEnd: this.learningRateEnd,
                 gamma: this.gamma,
                 epsilon: this.epsilon,
-                epsilonDecay: this.epsilonDecay,
+                epsilonStart: this.epsilonStart,
                 epsilonMin: this.epsilonMin,
+                epsilonDecaySteps: this.epsilonDecaySteps,
                 replayBufferSize: this.replayBufferSize,
-                batchSize: this.batchSize
+                batchSize: this.batchSize,
+                targetUpdateFreq: this.targetUpdateFreq,
+                gradientClipValue: this.gradientClipValue,
+                trainingStep: this.trainingStep
             },
             stats: this.stats
         };
@@ -283,6 +372,23 @@ class QLearningAgent {
         // Load model config
         const modelConfig = JSON.parse(fs.readFileSync(modelPath, 'utf8'));
 
+        // Restore hyperparameters first (needed for compilation)
+        if (modelConfig.hyperparameters) {
+            this.learningRate = modelConfig.hyperparameters.learningRate || this.learningRate;
+            this.learningRateStart = modelConfig.hyperparameters.learningRateStart || this.learningRateStart;
+            this.learningRateEnd = modelConfig.hyperparameters.learningRateEnd || this.learningRateEnd;
+            this.gamma = modelConfig.hyperparameters.gamma || this.gamma;
+            this.epsilon = modelConfig.hyperparameters.epsilon || this.epsilon;
+            this.epsilonStart = modelConfig.hyperparameters.epsilonStart || this.epsilonStart;
+            this.epsilonMin = modelConfig.hyperparameters.epsilonMin || this.epsilonMin;
+            this.epsilonDecaySteps = modelConfig.hyperparameters.epsilonDecaySteps || this.epsilonDecaySteps;
+            this.replayBufferSize = modelConfig.hyperparameters.replayBufferSize || this.replayBufferSize;
+            this.batchSize = modelConfig.hyperparameters.batchSize || this.batchSize;
+            this.targetUpdateFreq = modelConfig.hyperparameters.targetUpdateFreq || this.targetUpdateFreq;
+            this.gradientClipValue = modelConfig.hyperparameters.gradientClipValue || this.gradientClipValue;
+            this.trainingStep = modelConfig.hyperparameters.trainingStep || 0;
+        }
+
         // Restore model from topology
         this.model = await tf.models.modelFromJSON(modelConfig.modelTopology);
 
@@ -292,23 +398,16 @@ class QLearningAgent {
         );
         this.model.setWeights(weightValues);
 
-        // Recompile the model
+        // Recompile the model with gradient clipping
         this.model.compile({
-            optimizer: tf.train.adam(this.learningRate),
+            optimizer: tf.train.adam(this.learningRate, undefined, undefined, undefined, this.gradientClipValue),
             loss: 'meanSquaredError',
             metrics: ['mae']
         });
 
-        // Restore hyperparameters
-        if (modelConfig.hyperparameters) {
-            this.learningRate = modelConfig.hyperparameters.learningRate;
-            this.gamma = modelConfig.hyperparameters.gamma;
-            this.epsilon = modelConfig.hyperparameters.epsilon;
-            this.epsilonDecay = modelConfig.hyperparameters.epsilonDecay;
-            this.epsilonMin = modelConfig.hyperparameters.epsilonMin;
-            this.replayBufferSize = modelConfig.hyperparameters.replayBufferSize;
-            this.batchSize = modelConfig.hyperparameters.batchSize;
-        }
+        // Rebuild target network and sync weights
+        this.targetModel = this.buildModel();
+        this.syncTargetNetwork();
 
         // Restore stats
         if (modelConfig.stats) {
