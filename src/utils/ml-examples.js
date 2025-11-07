@@ -6,7 +6,7 @@
  */
 
 // Import the engine (for Node.js environment)
-const KalahEngine = require('./kalah-engine.js');
+const KalahEngine = require('../engine/kalah-engine.js');
 
 // ============================================================================
 // Example 1: Basic Game Simulation

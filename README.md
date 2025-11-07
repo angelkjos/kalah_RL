@@ -28,6 +28,8 @@ npm run train        # Train for 10,000 episodes (~5-10 minutes)
 npm run rl-demo      # Interactive training with menu options
 ```
 
+📚 **For complete training instructions, see: [docs/TRAINING-GUIDE.md](docs/TRAINING-GUIDE.md)**
+
 ---
 
 ## 🎯 Available Commands
@@ -46,32 +48,48 @@ npm run rl-demo      # Interactive training with menu options
 ## 📁 Project Structure
 
 ```
-oware/
-├── index.html                 # Browser game interface
-├── style.css                  # Game styling
-├── server.js                  # Local web server (CORS-safe)
+kalah_RL/
+├── src/                       # Source code
+│   ├── engine/
+│   │   └── kalah-engine.js    # Core game logic (UI-agnostic)
+│   ├── ai/
+│   │   ├── rl-agent.js        # RL agent (Node.js training)
+│   │   ├── rl-agent-browser.js # RL agent for browser
+│   │   ├── kalah-ai-browser.js # Minimax AI (Easy/Medium)
+│   │   └── trainer.js         # Training orchestration
+│   ├── training/
+│   │   ├── train-agent.js     # Quick training script
+│   │   └── rl-demo.js         # Interactive training menu
+│   └── utils/
+│       ├── play.js            # CLI play script
+│       ├── simple-demo.js     # Simple game demo
+│       └── ml-examples.js     # ML integration examples
 │
-├── kalah-engine.js            # Core game logic (UI-agnostic)
-├── kalah-ui.js                # Browser UI controller
-├── kalah-ai-browser.js        # Minimax AI (Easy/Medium)
-├── rl-agent-browser.js        # RL agent for browser
+├── public/                    # Browser-served files
+│   ├── index.html             # Browser game interface
+│   ├── style.css              # Game styling
+│   ├── kalah-ui.js            # Browser UI controller
+│   └── js/                    # Browser JS dependencies
+│       ├── kalah-engine.js
+│       ├── rl-agent-browser.js
+│       └── kalah-ai-browser.js
 │
-├── rl-agent.js                # RL agent (Node.js training)
-├── trainer.js                 # Training logic with curriculum learning
-│
-├── train-agent.js             # Quick training script
-├── rl-demo.js                 # Interactive training menu
-├── play.js                    # CLI play script
-├── simple-demo.js             # Simple game demo
-├── ml-examples.js             # ML integration examples
-│
-├── game.test.js               # Unit tests (18 tests)
+├── tests/
+│   └── game.test.js           # Unit tests (18 tests)
 │
 ├── models/
 │   └── kalah-agent/
-│       └── model.json         # Trained model
+│       └── model.json         # Trained RL model
 │
-├── docs/                      # Additional documentation
+├── scripts/
+│   └── server.js              # Local web server (CORS-safe)
+│
+├── docs/
+│   ├── HOW-RL-AGENT-WORKS.md  # Deep technical dive
+│   ├── TRAINING-GUIDE.md      # Complete training guide ⭐
+│   ├── PROJECT-STATUS.md      # Project notes
+│   └── START-STOP-SERVER.md   # Server troubleshooting
+│
 ├── package.json
 └── README.md
 ```

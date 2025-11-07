@@ -6,8 +6,8 @@
  * Train an agent with custom number of episodes and save the model
  */
 
-const QLearningAgent = require('./rl-agent.js');
-const Trainer = require('./trainer.js');
+const QLearningAgent = require('../ai/rl-agent.js');
+const Trainer = require('../ai/trainer.js');
 
 async function trainAgent() {
     console.log('🎮 Training Kalah/Mancala RL Agent\n');

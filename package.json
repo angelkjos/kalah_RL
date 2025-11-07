@@ -4,14 +4,14 @@
   "description": "A clean implementation of Kalah/Mancala with separated business logic for machine learning applications.",
   "main": "game.js",
   "scripts": {
-    "test": "node game.test.js",
-    "demo": "node simple-demo.js",
-    "ml-examples": "node ml-examples.js",
-    "rl-demo": "node rl-demo.js",
-    "rl-quick-train": "node rl-demo.js --quick-train",
-    "train": "node train-agent.js",
-    "play": "node play.js",
-    "serve": "node server.js"
+    "test": "node tests/game.test.js",
+    "demo": "node src/utils/simple-demo.js",
+    "ml-examples": "node src/utils/ml-examples.js",
+    "rl-demo": "node src/training/rl-demo.js",
+    "rl-quick-train": "node src/training/rl-demo.js --quick-train",
+    "train": "node src/training/train-agent.js",
+    "play": "node src/utils/play.js",
+    "serve": "node scripts/server.js"
   },
   "keywords": [],
   "author": "",

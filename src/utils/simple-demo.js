@@ -6,7 +6,7 @@
  * Run: node simple-demo.js
  */
 
-const KalahEngine = require('./kalah-engine.js');
+const KalahEngine = require('../engine/kalah-engine.js');
 
 console.log('🎮 Kalah/Mancala Engine Demo\n');
 

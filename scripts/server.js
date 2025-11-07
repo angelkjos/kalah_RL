@@ -24,9 +24,9 @@ const MIME_TYPES = {
 
 const server = http.createServer((req, res) => {
     // Parse URL and remove query strings
-    let filePath = '.' + req.url;
-    if (filePath === './') {
-        filePath = './index.html';
+    let filePath = './public' + req.url;
+    if (filePath === './public/') {
+        filePath = './public/index.html';
     }
 
     // Get file extension for MIME type

@@ -6,9 +6,9 @@
  * Play against a trained agent (or train a quick one if none exists)
  */
 
-const QLearningAgent = require('./rl-agent.js');
-const Trainer = require('./trainer.js');
-const KalahEngine = require('./kalah-engine.js');
+const QLearningAgent = require('../ai/rl-agent.js');
+const Trainer = require('../ai/trainer.js');
+const KalahEngine = require('../engine/kalah-engine.js');
 const readline = require('readline');
 const fs = require('fs');
 

@@ -107,7 +107,7 @@ global.window = {
 global.alert = () => {}; // Mock alert
 
 // Load the game engine
-const KalahEngine = require('./kalah-engine.js');
+const KalahEngine = require('../src/engine/kalah-engine.js');
 
 // ============ TESTS ============
 

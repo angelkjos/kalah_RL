@@ -6,9 +6,9 @@
  * Demonstrates training and playing with the Q-Learning agent
  */
 
-const QLearningAgent = require('./rl-agent.js');
-const Trainer = require('./trainer.js');
-const KalahEngine = require('./kalah-engine.js');
+const QLearningAgent = require('../ai/rl-agent.js');
+const Trainer = require('../ai/trainer.js');
+const KalahEngine = require('../engine/kalah-engine.js');
 const readline = require('readline');
 
 async function main() {

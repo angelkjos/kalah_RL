@@ -7,7 +7,7 @@
  * - Curriculum learning
  */
 
-const KalahEngine = require('./kalah-engine.js');
+const KalahEngine = require('../engine/kalah-engine.js');
 const QLearningAgent = require('./rl-agent.js');
 
 class Trainer {
