@@ -1,0 +1,24 @@
+{
+  "name": "oware",
+  "version": "1.0.0",
+  "description": "A clean implementation of Kalah/Mancala with separated business logic for machine learning applications.",
+  "main": "game.js",
+  "scripts": {
+    "test": "node game.test.js",
+    "demo": "node simple-demo.js",
+    "ml-examples": "node ml-examples.js",
+    "rl-demo": "node rl-demo.js",
+    "rl-quick-train": "node rl-demo.js --quick-train",
+    "train": "node train-agent.js",
+    "play": "node play.js",
+    "serve": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-node": "^4.22.0"
+  }
+}
