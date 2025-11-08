@@ -154,17 +154,11 @@ class Trainer {
                     const nextState = game.getState();
                     const done = game.gameOver;
 
-                    let reward = 0;
-                    if (done) {
-                        const winner = game.getWinner();
-                        if (winner === 0) reward = 1;
-                        else if (winner === 1) reward = -1;
-                    }
-
+                    // Store experience with placeholder reward (will be updated if game ends)
                     agentExperiences.push({
                         state,
                         action,
-                        reward,
+                        reward: 0, // Placeholder, updated after game ends
                         nextState,
                         done
                     });
@@ -173,6 +167,18 @@ class Trainer {
                     action = opponentPolicy(state, validMoves);
                     game.makeMove(action);
                 }
+            }
+
+            // CRITICAL FIX: Update terminal rewards for all agent experiences
+            // The last experience might not be terminal if opponent made the final move
+            const winner = game.getWinner();
+            const terminalReward = winner === 0 ? 1 : winner === 1 ? -1 : 0;
+
+            // Update the reward for the last experience (and mark as done)
+            if (agentExperiences.length > 0) {
+                const lastExp = agentExperiences[agentExperiences.length - 1];
+                lastExp.reward = terminalReward;
+                lastExp.done = true;
             }
 
             // Store agent's experiences

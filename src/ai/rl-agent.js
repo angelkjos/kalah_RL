@@ -5,7 +5,7 @@
  * Implements epsilon-greedy exploration and experience replay.
  */
 
-const tf = require('@tensorflow/tfjs');
+const tf = require('@tensorflow/tfjs-node');
 const { extractFeatures } = require('../utils/ml-examples.js');
 
 class QLearningAgent {
