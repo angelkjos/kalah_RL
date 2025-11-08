@@ -22,7 +22,7 @@ class QLearningAgent {
             epsilonMin = 0.05,
             epsilonDecaySteps = 50000,
             replayBufferSize = 100000,
-            batchSize = 64,
+            batchSize = 128,
             targetUpdateFreq = 1000,
             gradientClipValue = 1.0
         } = options;
@@ -64,7 +64,7 @@ class QLearningAgent {
      * Input: game state features (15 dimensions)
      * Output: Q-values for each action (6 pits)
      *
-     * Architecture: 15 → 128 → 128 → 64 → 6
+     * Architecture: 15 → 64 → 64 → 32 → 6
      */
     buildModel() {
         const model = tf.sequential();
@@ -72,21 +72,21 @@ class QLearningAgent {
         // Input layer (15 features)
         model.add(tf.layers.dense({
             inputShape: [15],
-            units: 128,
+            units: 64,
             activation: 'relu',
             kernelInitializer: 'heNormal'
         }));
 
         // Hidden layer 1
         model.add(tf.layers.dense({
-            units: 128,
+            units: 64,
             activation: 'relu',
             kernelInitializer: 'heNormal'
         }));
 
         // Hidden layer 2
         model.add(tf.layers.dense({
-            units: 64,
+            units: 32,
             activation: 'relu',
             kernelInitializer: 'heNormal'
         }));
