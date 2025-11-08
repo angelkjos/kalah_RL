@@ -195,13 +195,13 @@ class Trainer {
 
         console.log('\n📊 Evaluation History:');
         console.log('='.repeat(70));
-        for (const eval of evalHistory) {
-            const marker = eval.winRate === bestWinRate ? ' ⭐ BEST' : '';
+        for (const checkpoint of evalHistory) {
+            const marker = checkpoint.winRate === bestWinRate ? ' ⭐ BEST' : '';
             console.log(
-                `Ep ${eval.episode.toString().padStart(5)}: ` +
-                `${eval.winRate.toFixed(1)}% overall ` +
-                `(P0: ${eval.asPlayer0.toFixed(1)}%, P1: ${eval.asPlayer1.toFixed(1)}%) ` +
-                `ε=${eval.epsilon.toFixed(3)}${marker}`
+                `Ep ${checkpoint.episode.toString().padStart(5)}: ` +
+                `${checkpoint.winRate.toFixed(1)}% overall ` +
+                `(P0: ${checkpoint.asPlayer0.toFixed(1)}%, P1: ${checkpoint.asPlayer1.toFixed(1)}%) ` +
+                `ε=${checkpoint.epsilon.toFixed(3)}${marker}`
             );
         }
         console.log('='.repeat(70));
