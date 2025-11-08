@@ -112,42 +112,47 @@ class RLAgent {
 
     /**
      * Extract features from game state (must match training!)
+     * Player-relative representation (15 features)
+     *
+     * Features:
+     * - 6 floats: my pits (normalized to [0,1])
+     * - 6 floats: opponent's pits (normalized to [0,1])
+     * - 1 float: my captured seeds (normalized)
+     * - 1 float: opponent's captured seeds (normalized)
+     * - 1 float: total seeds remaining on board (normalized)
      */
     extractFeatures(state) {
         const features = [];
+        const MAX_SEEDS_PER_PIT = 20.0;  // Reasonable max for normalization
+        const MAX_STORE = 48.0;  // Total seeds in game
+        const MAX_REMAINING = 48.0;
 
-        // Normalized board state (0-1 range, max ~20 seeds per pit)
-        for (const seeds of state.board) {
-            features.push(seeds / 20.0);
+        const currentPlayer = state.currentPlayer;
+        const opponent = 1 - currentPlayer;
+
+        // Extract my pits and opponent's pits (player-relative)
+        const myPits = state.board.slice(currentPlayer * 6, (currentPlayer + 1) * 6);
+        const oppPits = state.board.slice(opponent * 6, (opponent + 1) * 6);
+
+        // 1-6: My pits (normalized)
+        for (const seeds of myPits) {
+            features.push(seeds / MAX_SEEDS_PER_PIT);
         }
 
-        // Normalized store counts (0-1 range, max 48 total seeds)
-        features.push(state.stores[0] / 48.0);
-        features.push(state.stores[1] / 48.0);
+        // 7-12: Opponent's pits (normalized)
+        for (const seeds of oppPits) {
+            features.push(seeds / MAX_SEEDS_PER_PIT);
+        }
 
-        // Current player (one-hot encoding)
-        features.push(state.currentPlayer === 0 ? 1 : 0);
-        features.push(state.currentPlayer === 1 ? 1 : 0);
+        // 13: My captured seeds (normalized)
+        features.push(state.stores[currentPlayer] / MAX_STORE);
 
-        // Derived features
-        const player0Pits = state.board.slice(0, 6);
-        const player1Pits = state.board.slice(6, 12);
+        // 14: Opponent's captured seeds (normalized)
+        features.push(state.stores[opponent] / MAX_STORE);
 
-        // Seeds on each side
-        const p0Seeds = player0Pits.reduce((a, b) => a + b, 0);
-        const p1Seeds = player1Pits.reduce((a, b) => a + b, 0);
-        features.push(p0Seeds / 24.0);
-        features.push(p1Seeds / 24.0);
-
-        // Number of empty pits on each side
-        const p0Empty = player0Pits.filter(x => x === 0).length / 6.0;
-        const p1Empty = player1Pits.filter(x => x === 0).length / 6.0;
-        features.push(p0Empty);
-        features.push(p1Empty);
-
-        // Store difference
-        const storeDiff = (state.stores[0] - state.stores[1]) / 48.0;
-        features.push(storeDiff);
+        // 15: Seeds remaining on board (normalized)
+        const remainingSeeds = state.board.reduce((a, b) => a + b, 0);
+        features.push(remainingSeeds / MAX_REMAINING);
 
         return features;
     }

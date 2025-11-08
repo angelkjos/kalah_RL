@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Model Loading Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+</head>
+<body>
+    <h1>RL Agent Model Loading Test</h1>
+    <button onclick="testLoad()">Test Load Model</button>
+    <pre id="output"></pre>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(msg) {
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        async function testLoad() {
+            output.textContent = '';
+            log('Starting model load test...');
+
+            try {
+                log('Fetching model.json...');
+                const response = await fetch('/models/kalah-agent/model.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                log('Parsing JSON...');
+                const modelConfig = await response.json();
+                log(`Model topology: ${JSON.stringify(modelConfig.modelTopology).substring(0, 100)}...`);
+                log(`Weights data entries: ${modelConfig.weightsData.length}`);
+
+                log('Converting to TF.js format...');
+                const modelArtifacts = {
+                    modelTopology: modelConfig.modelTopology,
+                    weightSpecs: [],
+                    weightData: null
+                };
+
+                const weightValues = [];
+                for (const weightInfo of modelConfig.weightsData) {
+                    const weightSize = weightInfo.shape.reduce((a, b) => a * b, 1);
+                    weightValues.push(...weightInfo.data);
+
+                    modelArtifacts.weightSpecs.push({
+                        name: weightInfo.name || `weight_${modelArtifacts.weightSpecs.length}`,
+                        shape: weightInfo.shape,
+                        dtype: weightInfo.dtype || 'float32'
+                    });
+                }
+
+                log(`Total weight values: ${weightValues.length}`);
+                log(`Weight specs: ${modelArtifacts.weightSpecs.length}`);
+
+                modelArtifacts.weightData = new Float32Array(weightValues).buffer;
+                log(`Weight data buffer size: ${modelArtifacts.weightData.byteLength} bytes`);
+
+                log('Loading model with tf.loadLayersModel...');
+                const model = await tf.loadLayersModel(tf.io.fromMemory(modelArtifacts));
+
+                log('✅ Model loaded successfully!');
+                log(`Model summary:`);
+                model.summary();
+
+                // Test prediction
+                log('\nTesting prediction...');
+                const testInput = tf.tensor2d([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]);
+                const prediction = model.predict(testInput);
+                log(`Prediction shape: ${prediction.shape}`);
+                log(`Prediction values: ${await prediction.data()}`);
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`);
+                log(`Stack: ${error.stack}`);
+            }
+        }
+    </script>
+</body>
+</html>
