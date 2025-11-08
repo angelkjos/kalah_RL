@@ -44,17 +44,36 @@ class Trainer {
     }
 
     /**
-     * Train agent through self-play
+     * Train agent through self-play with checkpointing
      * @param {number} numEpisodes - Number of games to play
+     * @param {Object} checkpointOptions - Checkpoint configuration
+     *   - evalInterval: Evaluate every N episodes (default: 5000)
+     *   - evalGames: Number of games per evaluation (default: 200)
+     *   - savePath: Path to save checkpoints (default: './checkpoints')
+     *   - keepBest: Keep only best checkpoint (default: true)
      *
      * Note: In self-play, the agent plays both sides, so "wins" and "losses"
      * represent which side (Player 0 vs Player 1) won, not agent performance.
      * Both outcomes contribute to learning.
      */
-    async trainSelfPlay(numEpisodes) {
+    async trainSelfPlay(numEpisodes, checkpointOptions = {}) {
         this.resetStats();
+
+        const {
+            evalInterval = 5000,
+            evalGames = 200,
+            savePath = './checkpoints',
+            keepBest = true
+        } = checkpointOptions;
+
         console.log(`\n🤖 Training via self-play for ${numEpisodes} episodes...`);
         console.log('(Note: Agent plays both sides, so wins/losses show game balance, not performance)');
+        console.log(`\n📊 Evaluation: Every ${evalInterval} episodes (${evalGames} games, both sides)`);
+        console.log(`💾 Checkpoints: ${savePath}`);
+
+        let bestWinRate = 0;
+        let bestEpisode = 0;
+        const evalHistory = [];
 
         for (let episode = 0; episode < numEpisodes; episode++) {
             const game = new KalahEngine({ enableLogging: false });
@@ -110,10 +129,90 @@ class Trainer {
             if (this.options.verbose && (episode + 1) % this.options.logInterval === 0) {
                 this.logProgress(episode + 1);
             }
+
+            // Checkpoint evaluation
+            if ((episode + 1) % evalInterval === 0 || episode + 1 === numEpisodes) {
+                console.log(`\n${'='.repeat(70)}`);
+                console.log(`🎯 Checkpoint Evaluation at Episode ${episode + 1}`);
+                console.log('='.repeat(70));
+
+                const evalResults = await this.evaluate(evalGames);
+                const winRate = parseFloat(evalResults.overall.winRate);
+
+                evalHistory.push({
+                    episode: episode + 1,
+                    winRate,
+                    epsilon: this.agent.epsilon,
+                    asPlayer0: parseFloat(evalResults.asPlayer0.winRate),
+                    asPlayer1: parseFloat(evalResults.asPlayer1.winRate)
+                });
+
+                // Calculate moving average (last 3 checkpoints)
+                const recentEvals = evalHistory.slice(-3);
+                const movingAvgWinRate = recentEvals.reduce((sum, e) => sum + e.winRate, 0) / recentEvals.length;
+                console.log(`\n📈 Moving Average (last ${recentEvals.length} checkpoints): ${movingAvgWinRate.toFixed(1)}%`);
+
+                // Save checkpoint if best so far
+                if (winRate > bestWinRate) {
+                    console.log(`\n🌟 New best model! ${winRate}% > ${bestWinRate}% (previous best)`);
+                    bestWinRate = winRate;
+                    bestEpisode = episode + 1;
+
+                    const checkpointPath = `${savePath}/best-checkpoint`;
+                    await this.agent.save(checkpointPath);
+                    console.log(`💾 Best checkpoint saved to ${checkpointPath}`);
+
+                    // Save metadata
+                    const fs = require('fs');
+                    const metadata = {
+                        episode: episode + 1,
+                        winRate,
+                        epsilon: this.agent.epsilon,
+                        timestamp: new Date().toISOString(),
+                        evalResults
+                    };
+                    fs.writeFileSync(
+                        `${checkpointPath}/metadata.json`,
+                        JSON.stringify(metadata, null, 2)
+                    );
+                } else {
+                    console.log(`\nCurrent: ${winRate}% (Best: ${bestWinRate}% at episode ${bestEpisode})`);
+                }
+
+                // Optionally save non-best checkpoints
+                if (!keepBest) {
+                    const checkpointPath = `${savePath}/checkpoint-${episode + 1}`;
+                    await this.agent.save(checkpointPath);
+                    console.log(`💾 Checkpoint saved to ${checkpointPath}`);
+                }
+
+                console.log('='.repeat(70));
+            }
         }
 
         console.log('\n✅ Self-play training complete!');
         this.printFinalStats();
+
+        console.log('\n📊 Evaluation History:');
+        console.log('='.repeat(70));
+        for (const eval of evalHistory) {
+            const marker = eval.winRate === bestWinRate ? ' ⭐ BEST' : '';
+            console.log(
+                `Ep ${eval.episode.toString().padStart(5)}: ` +
+                `${eval.winRate.toFixed(1)}% overall ` +
+                `(P0: ${eval.asPlayer0.toFixed(1)}%, P1: ${eval.asPlayer1.toFixed(1)}%) ` +
+                `ε=${eval.epsilon.toFixed(3)}${marker}`
+            );
+        }
+        console.log('='.repeat(70));
+        console.log(`\n🏆 Best checkpoint: Episode ${bestEpisode} with ${bestWinRate.toFixed(1)}% win rate`);
+        console.log(`📁 Best model saved at: ${savePath}/best-checkpoint`);
+
+        return {
+            bestEpisode,
+            bestWinRate,
+            evalHistory
+        };
     }
 
     /**
