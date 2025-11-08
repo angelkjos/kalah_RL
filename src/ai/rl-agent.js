@@ -226,9 +226,17 @@ class QLearningAgent {
                 // Terminal state - just use the reward
                 targetQ = exp.reward;
             } else {
-                // DQN update: Q(s,a) = r + γ * max Q_target(s',a')
+                // DQN update: Q(s,a) = r + γ * V(s')
                 const nextQ = this.getTargetQValues(exp.nextState);
-                targetQ = exp.reward + this.gamma * Math.max(...nextQ);
+                let nextValue = Math.max(...nextQ);
+
+                // CRITICAL: In zero-sum alternating games, negate value when player changes
+                // If next state is opponent's turn, their positive value is our negative value
+                if (exp.state.currentPlayer !== exp.nextState.currentPlayer) {
+                    nextValue = -nextValue;
+                }
+
+                targetQ = exp.reward + this.gamma * nextValue;
             }
 
             // Update only the Q-value for the action taken

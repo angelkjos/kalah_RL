@@ -79,11 +79,9 @@ class Trainer {
                     if (winner === 0) reward = 1;
                     else if (winner === 1) reward = -1;
                     // Draw = 0
-                } else {
-                    // Small intermediate reward based on score difference
-                    const scoreDiff = game.stores[0] - game.stores[1];
-                    reward = scoreDiff * 0.01; // Small reward for score advantage
                 }
+                // No intermediate rewards - only terminal rewards
+                // Intermediate rewards cause Q-value explosion
 
                 experiences.push({
                     state,
