@@ -83,7 +83,7 @@ class KalahUI {
 
         if (this.aiEnabled) {
             btn.textContent = '👤 Play vs Human';
-            btn.style.background = '#27ae60';
+            btn.classList.add('active-ai');
 
             // Show difficulty selector
             if (difficultySelect) {
@@ -111,7 +111,7 @@ class KalahUI {
             }
         } else {
             btn.textContent = '🤖 Play vs AI';
-            btn.style.background = '#3498db';
+            btn.classList.remove('active-ai');
 
             // Hide difficulty selector
             if (difficultySelect) {
