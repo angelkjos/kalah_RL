@@ -309,12 +309,12 @@ class Trainer {
 
     /**
      * Evaluate agent's performance
-     * @param {number} numGames - Number of evaluation games
+     * @param {number} numGames - Number of evaluation games (split evenly between both sides)
      * @param {Function} opponentPolicy - Opponent policy
      * @returns {Object} Evaluation results
      */
     async evaluate(numGames = 100, opponentPolicy = null) {
-        console.log(`\n📊 Evaluating agent over ${numGames} games...`);
+        console.log(`\n📊 Evaluating agent over ${numGames} games (both sides)...`);
 
         // Default to random opponent
         if (!opponentPolicy) {
@@ -324,10 +324,68 @@ class Trainer {
         }
 
         const savedEpsilon = this.agent.epsilon;
-        this.agent.epsilon = 0; // No exploration during evaluation
+        this.agent.epsilon = 0; // No exploration during evaluation - pure greedy
 
+        // Split games evenly between both player positions
+        const gamesPerSide = Math.floor(numGames / 2);
+
+        // Test as Player 0 (first player)
+        console.log(`\n  Testing as Player 0 (first) vs Random...`);
+        const resultsAsP0 = await this.evaluateSide(gamesPerSide, 0, opponentPolicy);
+
+        // Test as Player 1 (second player)
+        console.log(`  Testing as Player 1 (second) vs Random...`);
+        const resultsAsP1 = await this.evaluateSide(gamesPerSide, 1, opponentPolicy);
+
+        this.agent.epsilon = savedEpsilon; // Restore epsilon
+
+        // Combine results
+        const totalWins = resultsAsP0.wins + resultsAsP1.wins;
+        const totalLosses = resultsAsP0.losses + resultsAsP1.losses;
+        const totalDraws = resultsAsP0.draws + resultsAsP1.draws;
+        const totalGames = totalWins + totalLosses + totalDraws;
+        const totalScore = resultsAsP0.totalScore + resultsAsP1.totalScore;
+        const totalOpponentScore = resultsAsP0.totalOpponentScore + resultsAsP1.totalOpponentScore;
+
+        const results = {
+            asPlayer0: resultsAsP0,
+            asPlayer1: resultsAsP1,
+            overall: {
+                wins: totalWins,
+                losses: totalLosses,
+                draws: totalDraws,
+                winRate: (totalWins / totalGames * 100).toFixed(1),
+                avgScore: (totalScore / totalGames).toFixed(1),
+                avgOpponentScore: (totalOpponentScore / totalGames).toFixed(1)
+            }
+        };
+
+        console.log('\n' + '='.repeat(60));
+        console.log('Evaluation Results (ε = 0, pure greedy):');
+        console.log('='.repeat(60));
+        console.log(`\nAs Player 0 (first):  ${resultsAsP0.winRate}% win rate ` +
+                    `(${resultsAsP0.wins}W-${resultsAsP0.losses}L-${resultsAsP0.draws}D)`);
+        console.log(`As Player 1 (second): ${resultsAsP1.winRate}% win rate ` +
+                    `(${resultsAsP1.wins}W-${resultsAsP1.losses}L-${resultsAsP1.draws}D)`);
+        console.log(`\nOverall: ${results.overall.winRate}% win rate ` +
+                    `(${totalWins}W-${totalLosses}L-${totalDraws}D)`);
+        console.log(`Avg score: ${results.overall.avgScore} vs ${results.overall.avgOpponentScore}`);
+        console.log('='.repeat(60));
+
+        return results;
+    }
+
+    /**
+     * Evaluate agent playing as a specific player
+     * @param {number} numGames - Number of games to play
+     * @param {number} agentPlayer - Player number for agent (0 or 1)
+     * @param {Function} opponentPolicy - Opponent policy
+     * @returns {Object} Results for this side
+     */
+    async evaluateSide(numGames, agentPlayer, opponentPolicy) {
         let wins = 0, losses = 0, draws = 0;
         let totalScore = 0, totalOpponentScore = 0;
+        const opponentPlayer = 1 - agentPlayer;
 
         for (let i = 0; i < numGames; i++) {
             const game = new KalahEngine({ enableLogging: false });
@@ -336,7 +394,7 @@ class Trainer {
                 const state = game.getState();
                 const validMoves = game.getValidMoves();
 
-                if (state.currentPlayer === 0) {
+                if (state.currentPlayer === agentPlayer) {
                     // Agent's turn
                     const action = this.agent.selectAction(state, validMoves);
                     game.makeMove(action);
@@ -348,31 +406,24 @@ class Trainer {
             }
 
             const winner = game.getWinner();
-            if (winner === 0) wins++;
-            else if (winner === 1) losses++;
+            if (winner === agentPlayer) wins++;
+            else if (winner === opponentPlayer) losses++;
             else draws++;
 
-            totalScore += game.getScore(0);
-            totalOpponentScore += game.getScore(1);
+            totalScore += game.getScore(agentPlayer);
+            totalOpponentScore += game.getScore(opponentPlayer);
         }
 
-        this.agent.epsilon = savedEpsilon; // Restore epsilon
-
-        const results = {
+        return {
             wins,
             losses,
             draws,
             winRate: (wins / numGames * 100).toFixed(1),
             avgScore: (totalScore / numGames).toFixed(1),
-            avgOpponentScore: (totalOpponentScore / numGames).toFixed(1)
+            avgOpponentScore: (totalOpponentScore / numGames).toFixed(1),
+            totalScore,
+            totalOpponentScore
         };
-
-        console.log('\nEvaluation Results:');
-        console.log(`Win rate: ${results.winRate}%`);
-        console.log(`Wins: ${wins}, Losses: ${losses}, Draws: ${draws}`);
-        console.log(`Avg score: ${results.avgScore} vs ${results.avgOpponentScore}`);
-
-        return results;
     }
 }
 
