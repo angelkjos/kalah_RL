@@ -23,7 +23,7 @@
 
             try {
                 log('Fetching model.json...');
-                const response = await fetch('/models/kalah-agent/model.json');
+                const response = await fetch('models/kalah-agent/model.json');
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }

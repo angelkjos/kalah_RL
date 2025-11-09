@@ -14,7 +14,7 @@ class RLAgent {
     /**
      * Load the trained model from JSON
      */
-    async loadModel(modelPath = '/models/kalah-agent/model.json') {
+    async loadModel(modelPath = 'models/kalah-agent/model.json') {
         if (this.loaded) return true;
         if (this.loading) return false;
 
