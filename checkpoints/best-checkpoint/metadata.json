@@ -1,0 +1,36 @@
+{
+  "episode": 5000,
+  "winRate": 72.5,
+  "epsilon": 0.050000000000000044,
+  "timestamp": "2025-11-09T08:47:19.451Z",
+  "evalResults": {
+    "asPlayer0": {
+      "wins": 78,
+      "losses": 18,
+      "draws": 4,
+      "winRate": "78.0",
+      "avgScore": "29.7",
+      "avgOpponentScore": "18.3",
+      "totalScore": 2969,
+      "totalOpponentScore": 1831
+    },
+    "asPlayer1": {
+      "wins": 67,
+      "losses": 28,
+      "draws": 5,
+      "winRate": "67.0",
+      "avgScore": "26.9",
+      "avgOpponentScore": "21.1",
+      "totalScore": 2685,
+      "totalOpponentScore": 2115
+    },
+    "overall": {
+      "wins": 145,
+      "losses": 46,
+      "draws": 9,
+      "winRate": "72.5",
+      "avgScore": "28.3",
+      "avgOpponentScore": "19.7"
+    }
+  }
+}
