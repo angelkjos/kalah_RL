@@ -17,6 +17,9 @@ class KalahUI {
         // UI-specific state
         this.moveHistory = [];
 
+        // Game statistics
+        this.gamesWon = [0, 0]; // Track wins for each player
+
         // AI opponent
         this.aiEnabled = false;
         this.aiDifficulty = 'medium';
@@ -73,6 +76,7 @@ class KalahUI {
         }
 
         this.updateUI();
+        this.updateWinsDisplay();
         this.logState('Game initialized');
     }
 
@@ -258,6 +262,8 @@ class KalahUI {
         if (winner === null) {
             alert(`Game Over! It's a draw with ${this.engine.stores[0]} seeds each!`);
         } else {
+            this.gamesWon[winner]++;
+            this.updateWinsDisplay();
             alert(`Game Over! Player ${winner + 1} wins with ${this.engine.stores[winner]} seeds!`);
         }
     }
@@ -296,6 +302,11 @@ class KalahUI {
         }
     }
 
+    updateWinsDisplay() {
+        document.getElementById('player1-wins').textContent = this.gamesWon[0];
+        document.getElementById('player2-wins').textContent = this.gamesWon[1];
+    }
+
     logState(message) {
         console.log('\n' + this.engine.toString());
     }
@@ -311,10 +322,6 @@ class KalahUI {
         // Update store displays
         document.querySelector('#store-0 .seeds').textContent = state.stores[0];
         document.querySelector('#store-1 .seeds').textContent = state.stores[1];
-
-        // Update scores in top info
-        document.getElementById('player1-score').textContent = state.stores[0];
-        document.getElementById('player2-score').textContent = state.stores[1];
 
         // Update turn display
         const turnDisplay = document.getElementById('turn-display');
