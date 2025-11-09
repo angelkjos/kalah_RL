@@ -30,34 +30,20 @@ class RLAgent {
 
             const modelConfig = await response.json();
 
-            // Convert custom format to TensorFlow.js model artifacts format
-            const modelArtifacts = {
-                modelTopology: modelConfig.modelTopology,
-                weightSpecs: [],
-                weightData: null
-            };
+            // Load model from topology (same approach as Node.js version)
+            this.model = await tf.models.modelFromJSON(modelConfig.modelTopology);
 
-            // Prepare weight specs and collect weight data
-            const weightValues = [];
-            let totalWeightCount = 0;
+            // Restore weights
+            const weightTensors = modelConfig.weightsData.map(w =>
+                tf.tensor(w.data, w.shape, w.dtype)
+            );
+            this.model.setWeights(weightTensors);
 
-            for (const weightInfo of modelConfig.weightsData) {
-                const weightSize = weightInfo.shape.reduce((a, b) => a * b, 1);
-                weightValues.push(...weightInfo.data);
-                totalWeightCount += weightSize;
-
-                modelArtifacts.weightSpecs.push({
-                    name: weightInfo.name || `weight_${modelArtifacts.weightSpecs.length}`,
-                    shape: weightInfo.shape,
-                    dtype: weightInfo.dtype || 'float32'
-                });
-            }
-
-            // Convert weight values to Float32Array
-            modelArtifacts.weightData = new Float32Array(weightValues).buffer;
-
-            // Load model from memory
-            this.model = await tf.loadLayersModel(tf.io.fromMemory(modelArtifacts));
+            // Compile the model (optional for inference, but good practice)
+            this.model.compile({
+                optimizer: 'adam',
+                loss: 'meanSquaredError'
+            });
 
             this.loaded = true;
             this.loading = false;
