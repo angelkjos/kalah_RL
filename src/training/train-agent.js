@@ -46,9 +46,9 @@ async function trainAgent() {
         logInterval: 500  // Log every 500 episodes
     });
 
-    // Train with checkpointing
-    console.log('\n🤖 Starting self-play training with checkpointing...');
-    const results = await trainer.trainSelfPlay(numEpisodes, {
+    // Train with curriculum
+    console.log('\n🤖 Starting curriculum training...');
+    const results = await trainer.trainCurriculum(numEpisodes, {
         evalInterval,
         evalGames: 200,
         savePath: './checkpoints',

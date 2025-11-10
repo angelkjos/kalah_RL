@@ -233,3 +233,5 @@ class KalahAI {
 if (typeof window !== 'undefined') {
     window.KalahAI = KalahAI;
 }
+
+module.exports = KalahAI;

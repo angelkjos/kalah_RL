@@ -9,6 +9,7 @@
 
 const KalahEngine = require('../engine/kalah-engine.js');
 const QLearningAgent = require('./rl-agent.js');
+const KalahAI = require('./kalah-ai-browser.js');
 
 class Trainer {
     constructor(agent, options = {}) {
@@ -314,9 +315,12 @@ class Trainer {
 
         console.log(`\n📚 Training with curriculum learning for ${numEpisodes} episodes...`);
 
+        const minimaxAI = new KalahAI('medium');
+        const minimaxPolicy = (state, validMoves) => minimaxAI.selectMove(state);
+
         const stages = [
             { name: 'Random opponent (warm-up)', episodes: Math.floor(numEpisodes * 0.3), policy: null },
-            { name: 'Self-play (intermediate)', episodes: Math.floor(numEpisodes * 0.4), policy: 'self' },
+            { name: 'Minimax opponent (intermediate)', episodes: Math.floor(numEpisodes * 0.4), policy: minimaxPolicy },
             { name: 'Self-play (advanced)', episodes: Math.floor(numEpisodes * 0.3), policy: 'self' }
         ];
 
