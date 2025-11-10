@@ -58,19 +58,24 @@ class Trainer {
      * Both outcomes contribute to learning.
      */
     async trainSelfPlay(numEpisodes, checkpointOptions = {}) {
-        this.resetStats();
+        if (!checkpointOptions.isStage) {
+            this.resetStats();
+        }
 
         const {
             evalInterval = 5000,
             evalGames = 200,
             savePath = './checkpoints',
-            keepBest = true
+            keepBest = true,
+            isStage = false
         } = checkpointOptions;
 
         console.log(`\n🤖 Training via self-play for ${numEpisodes} episodes...`);
-        console.log('(Note: Agent plays both sides, so wins/losses show game balance, not performance)');
-        console.log(`\n📊 Evaluation: Every ${evalInterval} episodes (${evalGames} games, both sides)`);
-        console.log(`💾 Checkpoints: ${savePath}`);
+        if (!isStage) {
+            console.log('(Note: Agent plays both sides, so wins/losses show game balance, not performance)');
+            console.log(`\n📊 Evaluation: Every ${evalInterval} episodes (${evalGames} games, both sides)`);
+            console.log(`💾 Checkpoints: ${savePath}`);
+        }
 
         let bestWinRate = 0;
         let bestEpisode = 0;
@@ -191,23 +196,25 @@ class Trainer {
             }
         }
 
-        console.log('\n✅ Self-play training complete!');
-        this.printFinalStats();
+        if (!isStage) {
+            console.log('\n✅ Self-play training complete!');
+            this.printFinalStats();
 
-        console.log('\n📊 Evaluation History:');
-        console.log('='.repeat(70));
-        for (const checkpoint of evalHistory) {
-            const marker = checkpoint.winRate === bestWinRate ? ' ⭐ BEST' : '';
-            console.log(
-                `Ep ${checkpoint.episode.toString().padStart(5)}: ` +
-                `${checkpoint.winRate.toFixed(1)}% overall ` +
-                `(P0: ${checkpoint.asPlayer0.toFixed(1)}%, P1: ${checkpoint.asPlayer1.toFixed(1)}%) ` +
-                `ε=${checkpoint.epsilon.toFixed(3)}${marker}`
-            );
+            console.log('\n📊 Evaluation History:');
+            console.log('='.repeat(70));
+            for (const checkpoint of evalHistory) {
+                const marker = checkpoint.winRate === bestWinRate ? ' ⭐ BEST' : '';
+                console.log(
+                    `Ep ${checkpoint.episode.toString().padStart(5)}: ` +
+                    `${checkpoint.winRate.toFixed(1)}% overall ` +
+                    `(P0: ${checkpoint.asPlayer0.toFixed(1)}%, P1: ${checkpoint.asPlayer1.toFixed(1)}%) ` +
+                    `ε=${checkpoint.epsilon.toFixed(3)}${marker}`
+                );
+            }
+            console.log('='.repeat(70));
+            console.log(`\n🏆 Best checkpoint: Episode ${bestEpisode} with ${bestWinRate.toFixed(1)}% win rate`);
+            console.log(`📁 Best model saved at: ${savePath}/best-checkpoint`);
         }
-        console.log('='.repeat(70));
-        console.log(`\n🏆 Best checkpoint: Episode ${bestEpisode} with ${bestWinRate.toFixed(1)}% win rate`);
-        console.log(`📁 Best model saved at: ${savePath}/best-checkpoint`);
 
         return {
             bestEpisode,
@@ -221,8 +228,10 @@ class Trainer {
      * @param {number} numEpisodes - Number of games to play
      * @param {Function} opponentPolicy - Function(state, validMoves) => action
      */
-    async trainAgainstOpponent(numEpisodes, opponentPolicy = null) {
-        this.resetStats();
+    async trainAgainstOpponent(numEpisodes, opponentPolicy = null, options = {}) {
+        if (!options.isStage) {
+            this.resetStats();
+        }
 
         // Default to random opponent
         if (!opponentPolicy) {
@@ -299,8 +308,10 @@ class Trainer {
             }
         }
 
-        console.log('\n✅ Opponent training complete!');
-        this.printFinalStats();
+        if (!options.isStage) {
+            console.log('\n✅ Opponent training complete!');
+            this.printFinalStats();
+        }
     }
 
     /**
@@ -308,9 +319,9 @@ class Trainer {
      * @param {number} numEpisodes - Total number of episodes
      * @param {boolean} resetStatsPerStage - Reset stats between stages (default: false, keeps cumulative)
      */
-    async trainCurriculum(numEpisodes, resetStatsPerStage = false) {
-        if (!resetStatsPerStage) {
-            this.resetStats(); // Reset once at the start for cumulative stats
+    async trainCurriculum(numEpisodes, checkpointOptions = {}) {
+        if (!this.options.cumulative) {
+            this.resetStats();
         }
 
         console.log(`\n📚 Training with curriculum learning for ${numEpisodes} episodes...`);
@@ -324,28 +335,32 @@ class Trainer {
             { name: 'Self-play (advanced)', episodes: Math.floor(numEpisodes * 0.3), policy: 'self' }
         ];
 
+        let bestWinRate = 0;
+        let bestEpisode = 0;
+        let cumulativeEpisodes = 0;
+
         for (let i = 0; i < stages.length; i++) {
             const stage = stages[i];
             console.log(`\n--- Stage ${i + 1}/${stages.length}: ${stage.name} (${stage.episodes} episodes) ---`);
 
-            // Save resetStats calls to avoid resetting during curriculum unless requested
-            const originalResetStats = this.resetStats.bind(this);
-            if (!resetStatsPerStage) {
-                // Temporarily override resetStats to do nothing
-                this.resetStats = () => {};
-            }
-
+            let stageResults;
             if (stage.policy === 'self') {
-                await this.trainSelfPlay(stage.episodes);
+                stageResults = await this.trainSelfPlay(stage.episodes, { ...checkpointOptions, isStage: true });
             } else {
-                await this.trainAgainstOpponent(stage.episodes, stage.policy);
+                stageResults = await this.trainAgainstOpponent(stage.episodes, stage.policy, { ...checkpointOptions, isStage: true });
             }
 
-            // Restore original method
-            this.resetStats = originalResetStats;
+            if (stageResults && stageResults.bestWinRate > bestWinRate) {
+                bestWinRate = stageResults.bestWinRate;
+                bestEpisode = cumulativeEpisodes + stageResults.bestEpisode;
+            }
+            cumulativeEpisodes += stage.episodes;
         }
 
         console.log('\n✅ Curriculum training complete!');
+        this.printFinalStats();
+
+        return { bestEpisode, bestWinRate };
     }
 
     /**
