@@ -36,6 +36,14 @@ fi
 echo -e "${BLUE}📁 Creating deployment directory...${NC}"
 mkdir -p "$PAGES_REPO/$DEPLOY_DIR"
 
+# Update public folder with latest from src
+echo -e "${BLUE}🔄 Syncing files from src/ to public/...${NC}"
+cp src/ai/kalah-ai-browser.js public/js/
+cp src/ai/rl-agent-browser.js public/js/
+cp src/engine/kalah-engine.js public/js/
+rsync -av models/kalah-agent/ public/models/kalah-agent/
+echo -e "${GREEN}✅ Sync complete!${NC}\n"
+
 # Copy files
 echo -e "${BLUE}📋 Copying files from $SOURCE_DIR to $PAGES_REPO/$DEPLOY_DIR...${NC}"
 rsync -av --delete \
