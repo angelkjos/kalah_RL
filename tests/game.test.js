@@ -329,5 +329,21 @@ test('Winner is determined correctly', () => {
     expect(game.stores[1]).toBe(16); // Player 1 gets remaining seed
 });
 
+test('Game ends when a player reaches 25 or more seeds in their store', () => {
+    const game = new KalahEngine();
+    // Set Player 0's store to 24, Player 1's to 10
+    game.stores = [24, 10];
+    // Set up board so Player 0 can make a move that adds 1 seed to their store
+    // Player 0 plays pit 0 with 1 seed, landing in their store
+    game.board = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    game.currentPlayer = 0;
+
+    game.makeMove(0); // Player 0 moves 1 seed from pit 0 to their store
+
+    expect(game.gameOver).toBe(true);
+    expect(game.stores[0]).toBe(25);
+    expect(game.getWinner()).toBe(0); // Player 0 should be the winner
+});
+
 // Run all tests
 runTests();
