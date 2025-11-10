@@ -49,6 +49,7 @@ coverage/
 # Optional: Trained models (uncomment if you don't want to commit models)
 # models/
 # *.json
+checkpoints/
 
 # Claude Code
 .claude/
