@@ -256,6 +256,25 @@ class KalahEngine {
      * @private
      */
     _checkAndHandleGameOver() {
+        // Check for immediate win condition (score >= 25)
+        if (this.stores[0] >= 25 || this.stores[1] >= 25) {
+            this.gameOver = true;
+            // Collect any remaining seeds on the board
+            const player0Seeds = this.board.slice(0, this.pitsPerPlayer).reduce((a, b) => a + b, 0);
+            const player1Seeds = this.board.slice(this.pitsPerPlayer).reduce((a, b) => a + b, 0);
+
+            this.stores[0] += player0Seeds;
+            for (let i = 0; i < this.pitsPerPlayer; i++) {
+                this.board[i] = 0;
+            }
+
+            this.stores[1] += player1Seeds;
+            for (let i = this.pitsPerPlayer; i < this.totalPits; i++) {
+                this.board[i] = 0;
+            }
+            return true;
+        }
+
         const player0Seeds = this.board.slice(0, this.pitsPerPlayer).reduce((a, b) => a + b, 0);
         const player1Seeds = this.board.slice(this.pitsPerPlayer).reduce((a, b) => a + b, 0);
 
