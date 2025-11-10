@@ -6,7 +6,7 @@
  */
 
 const tf = require('@tensorflow/tfjs-node');
-const { extractFeatures } = require('../utils/ml-examples.js');
+const { extractFeatures } = require('./feature-extractor.js');
 
 class QLearningAgent {
     /**

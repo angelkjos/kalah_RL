@@ -41,6 +41,7 @@ echo -e "${BLUE}🔄 Syncing files from src/ to public/...${NC}"
 cp src/ai/kalah-ai-browser.js public/js/
 cp src/ai/rl-agent-browser.js public/js/
 cp src/engine/kalah-engine.js public/js/
+cp src/ai/feature-extractor.js public/js/
 rsync -av models/kalah-agent/ public/models/kalah-agent/
 echo -e "${GREEN}✅ Sync complete!${NC}\n"
 
@@ -79,7 +80,7 @@ if [ -n "$(git status --porcelain)" ]; then
         git commit -m "$COMMIT_MSG"
 
         echo -e "${BLUE}🚀 Pushing to GitHub...${NC}"
-        git push origin main || git push origin master
+        git push origin master
 
         echo -e "${GREEN}✅ Deployment complete!${NC}"
         echo -e "${GREEN}🌐 Your game will be available at: https://angelkjos.github.io/$DEPLOY_DIR/${NC}"

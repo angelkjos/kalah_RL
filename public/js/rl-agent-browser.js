@@ -65,8 +65,8 @@ class RLAgent {
         if (validMoves.length === 0) return null;
 
         return tf.tidy(() => {
-            // Extract features (same as in training)
-            const features = this.extractFeatures(state);
+            // Extract features using the global function
+            const features = extractFeatures(state);
             const featureTensor = tf.tensor2d([features]);
 
             // Get Q-values
@@ -88,48 +88,6 @@ class RLAgent {
 
             return bestMove;
         });
-    }
-
-    /**
-     * Extract features from game state (must match training!)
-     */
-    extractFeatures(state) {
-        const features = [];
-
-        // Normalized board state (0-1 range, max ~20 seeds per pit)
-        for (const seeds of state.board) {
-            features.push(seeds / 20.0);
-        }
-
-        // Normalized store counts (0-1 range, max 48 total seeds)
-        features.push(state.stores[0] / 48.0);
-        features.push(state.stores[1] / 48.0);
-
-        // Current player (one-hot encoding)
-        features.push(state.currentPlayer === 0 ? 1 : 0);
-        features.push(state.currentPlayer === 1 ? 1 : 0);
-
-        // Derived features
-        const player0Pits = state.board.slice(0, 6);
-        const player1Pits = state.board.slice(6, 12);
-
-        // Seeds on each side
-        const p0Seeds = player0Pits.reduce((a, b) => a + b, 0);
-        const p1Seeds = player1Pits.reduce((a, b) => a + b, 0);
-        features.push(p0Seeds / 24.0);
-        features.push(p1Seeds / 24.0);
-
-        // Number of empty pits on each side
-        const p0Empty = player0Pits.filter(x => x === 0).length / 6.0;
-        const p1Empty = player1Pits.filter(x => x === 0).length / 6.0;
-        features.push(p0Empty);
-        features.push(p1Empty);
-
-        // Store difference
-        const storeDiff = (state.stores[0] - state.stores[1]) / 48.0;
-        features.push(storeDiff);
-
-        return features;
     }
 
     /**
