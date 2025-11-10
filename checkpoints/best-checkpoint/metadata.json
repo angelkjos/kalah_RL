@@ -1,36 +1,36 @@
 {
-  "episode": 5000,
-  "winRate": 72.5,
-  "epsilon": 0.050000000000000044,
-  "timestamp": "2025-11-09T08:47:19.451Z",
+  "episode": 10000,
+  "winRate": 59,
+  "epsilon": 0.1450570000000001,
+  "timestamp": "2025-11-10T18:17:53.866Z",
   "evalResults": {
     "asPlayer0": {
-      "wins": 78,
-      "losses": 18,
-      "draws": 4,
-      "winRate": "78.0",
-      "avgScore": "29.7",
-      "avgOpponentScore": "18.3",
-      "totalScore": 2969,
-      "totalOpponentScore": 1831
+      "wins": 59,
+      "losses": 41,
+      "draws": 0,
+      "winRate": "59.0",
+      "avgScore": "25.8",
+      "avgOpponentScore": "22.2",
+      "totalScore": 2583,
+      "totalOpponentScore": 2217
     },
     "asPlayer1": {
-      "wins": 67,
-      "losses": 28,
-      "draws": 5,
-      "winRate": "67.0",
-      "avgScore": "26.9",
-      "avgOpponentScore": "21.1",
-      "totalScore": 2685,
-      "totalOpponentScore": 2115
+      "wins": 59,
+      "losses": 38,
+      "draws": 3,
+      "winRate": "59.0",
+      "avgScore": "25.7",
+      "avgOpponentScore": "22.3",
+      "totalScore": 2573,
+      "totalOpponentScore": 2227
     },
     "overall": {
-      "wins": 145,
-      "losses": 46,
-      "draws": 9,
-      "winRate": "72.5",
-      "avgScore": "28.3",
-      "avgOpponentScore": "19.7"
+      "wins": 118,
+      "losses": 79,
+      "draws": 3,
+      "winRate": "59.0",
+      "avgScore": "25.8",
+      "avgOpponentScore": "22.2"
     }
   }
 }
